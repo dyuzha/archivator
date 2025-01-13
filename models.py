@@ -15,10 +15,37 @@ class DefaultArchiveBuilder(ArchiveBuilder):
         self.allow_zip64 = allow_zip64
 
     def build_archive(self, archive_path: PurePath,  *files):
-        with ZipFile(archive_path, mode="a", compression=self.compression,
-                     allowZip64=self.allow_zip64) as myzip:
+        # Создание пустого zip архива
+        with ZipFile('archive.zip', 'w') as zip_file:
+            pass
+
             for file in files:
-                myzip.write(file)
+            #     for sub_file in file.rglob("*"):
+            #         myzip.write(sub_file, arcname=sub_file.relative_to(file))
+                self.add_to_archive(archive_path, file)
+            #
+            # with ZipFile(archive_path, mode="a", compression=self.compression,
+            #              allowZip64=self.allow_zip64) as archive:
+
+            
+
+    def add_to_archive(self, zip_file, file_path):
+        """
+        Добавляет рекурсивно файл(ы) в архив
+        :param zip_file: Zip-файл, который необходимо дополнить файлом
+        :param folder_path: Путь к файлу для рекурсивного добавления
+        """
+        with ZipFile(zip_file, mode="a", compression=self.compression,
+                        allowZip64=self.allow_zip64) as archive:
+
+            for file in Path(file_path).iterdir():
+                if file.is_file():
+                    archive.write(file)
+                elif file.is_dir():
+                    # Рекурсивный вызов для обработки подпапок
+                    archive.write(file)
+                    self.add_to_archive(archive, file)  
+
 
 
 class ResultsFolder(object):
@@ -85,7 +112,6 @@ def main():
 
     processor = TemplateProcessor(results_folder.path)
     processor.archive_by_templates(["pat_1", "pat_3"])
-
 
 
 if __name__ == "__main__":

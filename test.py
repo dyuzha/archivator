@@ -9,10 +9,11 @@ DATA = Path("databases")
 TARGET = Path("results")
 
 
-archive_path = Path("results/1212/db.zip")
+archive_path = TARGET / "1212/db.zip"
 
-file = Path("databases")
+target = Path("databases")
 
-with ZipFile(archive_path, mode="w", compression=ZIP_DEFLATED,
-    allowZip64=True) as myzip:
-        myzip.write(file.absolute())
+with ZipFile("databases.zip", mode="a") as archive:
+    for file_path in target.rglob("*"):
+        archive.write(file_path, arcname=file_path.relative_to(target))
+        
