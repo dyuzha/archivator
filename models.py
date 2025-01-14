@@ -36,7 +36,7 @@ class DefaultArchiveBuilder(ArchiveBuilder):
                     logger.debug(f"Файл {file.name} добавлен в архив {zip_file.name}")
                 elif file.is_dir():
                     # Рекурсивный вызов для обработки подпапок
-                    archive.write(file)
+                    archive.write(file, arcname=file.name)
                     self.add_to_archive(archive, file)
                     logger.debug(f"Папка {file.name} добавлена в архив {zip_file.name}")
 
@@ -74,7 +74,7 @@ class TemplateProcessor(object):
             self.create_archive(databases, archive_path)
 
     def get_databases(self, template) -> list:
-        # Список информационных баз из шаблона
+        """Получает список информационных баз из шаблона"""
         databases = list()
         with open(Path(TEMPLATES / template), 'r') as file:
             for line in file.readlines():
