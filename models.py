@@ -1,6 +1,7 @@
 from zipfile import ZipFile, ZIP_DEFLATED
 from pathlib import Path, PurePath
 from loguru import logger
+import yaml
 from abc import ABC, abstractmethod
 
 
@@ -61,8 +62,24 @@ class ZipArchiveBuilder(ArchiveBuilder):
                     logger.debug(f"Папка {file.name} добавлена в архив {zip_file.name}")
 
 
+class YamlHandler:
+    def __init__(self, file_path):
+        self.file_path = file_path
+        self.data: dict = {}
+
+    def load_data(self):
+        with open(self.file_path, 'r') as file:
+            self.data = yaml.load(file, Loader=yaml.FullLoader)
+
+    def dump_data(self):
+        with open(self.file_path, 'w') as file:
+            yaml.dump(self.data, file, default_flow_style=False)
+
+
 
 class ResultsFolder(object):
+    def __init__(self, path: Path):
+        self.path = path
     # Переменная для отслеживания единственности экземпляра
     instance = None
 
@@ -74,18 +91,20 @@ class ResultsFolder(object):
         # Возвращается экземпляр хранящийся в переменной класса
         return cls.instance
 
-    def create_folder(self, name):
-        self.path = Path(TARGET / Path(name))
+    def create_folder(self, name: str):
+        self.path_folder = self.path / Path(name)
         # Проверяем, существует ли папка
-        if not self.path.exists():
+        if not self.path_folder.exists():
             # Если папка не существует, создаем ее
-            self.path.mkdir()
+            self.path_folder.mkdir()
             logger.info(f"Создана папка {self.path.name}")
 
 
 class TemplateProcessor(object):
-    def __init__(self, target_folder: PurePath):
+    def __init__(self, target_folder, templates_folder, data_folder):
         self.target_folder = target_folder
+        self.templates_folder = templates_folder
+        self.data_folder = data_folder
 
     def archive_by_templates(self, templates) -> None:
         for template in templates:
@@ -96,7 +115,7 @@ class TemplateProcessor(object):
     def get_databases(self, template) -> list:
         """Получает список информационных баз из шаблона"""
         databases = list()
-        with open(Path(TEMPLATES / template), 'r') as file:
+        with open(Path(self.templates_folder / template), 'r') as file:
             for line in file.readlines():
                 line = line[:-1]
                 databases.append(line)
@@ -106,28 +125,6 @@ class TemplateProcessor(object):
         builder = ZipArchiveBuilder()
         files_pathes = list()
         for db_name in databases:
-            file_path = Path(DATA / Path(db_name))
+            file_path = Path(self.data_folder / Path(db_name))
             files_pathes.append(file_path)
         builder.build_archive(archive_path, *files_pathes)
-
-
-# Папка с шаблонами
-TEMPLATES = Path("templates")
-# Папка с базами
-DATA = Path("databases")
-# Конечная папку
-TARGET = Path("results")
-
-
-folder_name = "1212"
-
-def main():
-    results_folder = ResultsFolder()
-    results_folder.create_folder(folder_name)
-
-    processor = TemplateProcessor(results_folder.path)
-    processor.archive_by_templates(["pat_1", "pat_3"])
-
-
-if __name__ == "__main__":
-    main()
