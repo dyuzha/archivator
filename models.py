@@ -27,10 +27,10 @@ class ZipArchiveBuilder(ArchiveBuilder):
         Добавляет рекурсивно файл в архив
         :param zip_file: Path, Zip-файл, который необходимо дополнить файлом
         :param file: Path, Путь к файлу для рекурсивного добавления
-        :param indent_dir: str, показывает в какую папку в архиве необходимо 
+        :param indent_dir: str, показывает в какую папку в архиве необходимо
         поместить файл
         """
-        with ZipFile(zip_file, mode="a", compression=self.compression, 
+        with ZipFile(zip_file, mode="a", compression=self.compression,
                      allowZip64=self.allow_zip64) as zf:
             zf.write(file, arcname=indent_dir + file.name)
             logger.debug(f"Файл {file.name} добавлен в архив {zip_file.name}")
@@ -41,25 +41,6 @@ class ZipArchiveBuilder(ArchiveBuilder):
             for indent_file in dir.iterdir():
                 self.recurcieve_add_to_archive(zip_file, indent_file, indent_dir=indent_dir)
             logger.debug(f"Папка {dir.name} добавлена в архив {zip_file.name}")
-
-
-    def add_to_archive(self, zip_file, file):
-        """
-        Добавляет рекурсивно файл(ы) в архив
-        :param zip_file: Zip-файл, который необходимо дополнить файлом
-        :param folder_path: Путь к файлу для рекурсивного добавления
-        """
-        with ZipFile(zip_file, mode="a", compression=self.compression,
-                        allowZip64=self.allow_zip64) as archive:
-            for file in Path(file).iterdir():
-                if file.is_file():
-                    archive.write(file, arcname=file.name)
-                    logger.debug(f"Файл {file.name} добавлен в архив {zip_file.name}")
-                elif file.is_dir():
-                    # Рекурсивный вызов для обработки подпапок
-                    archive.write(file, arcname=file.name)
-                    self.add_to_archive(archive, file)
-                    logger.debug(f"Папка {file.name} добавлена в архив {zip_file.name}")
 
 
 class YamlHandler:
