@@ -1,5 +1,6 @@
 from zipfile import ZipFile, ZIP_DEFLATED
 from pathlib import Path, PurePath
+from loguru import logger
 from abc import ABC, abstractmethod
 
 
@@ -13,23 +14,15 @@ class DefaultArchiveBuilder(ArchiveBuilder):
     def __init__(self, compression=ZIP_DEFLATED, allow_zip64=True):
         self.compression = compression
         self.allow_zip64 = allow_zip64
+        logger.debug("Конструктор вызван")
 
     def build_archive(self, archive_path: PurePath,  *files):
-        # Создание пустого zip архива
-        with ZipFile('archive.zip', 'w') as zip_file:
-            pass
+        for file in files:
+            self.add_to_archive(archive_path, file)
+        logger.info(f"Архив {archive_path.name} построен")
 
-            for file in files:
-            #     for sub_file in file.rglob("*"):
-            #         myzip.write(sub_file, arcname=sub_file.relative_to(file))
-                self.add_to_archive(archive_path, file)
-            #
-            # with ZipFile(archive_path, mode="a", compression=self.compression,
-            #              allowZip64=self.allow_zip64) as archive:
 
-            
-
-    def add_to_archive(self, zip_file, file_path):
+    def add_to_archive(self, zip_file, file):
         """
         Добавляет рекурсивно файл(ы) в архив
         :param zip_file: Zip-файл, который необходимо дополнить файлом
@@ -37,14 +30,15 @@ class DefaultArchiveBuilder(ArchiveBuilder):
         """
         with ZipFile(zip_file, mode="a", compression=self.compression,
                         allowZip64=self.allow_zip64) as archive:
-
-            for file in Path(file_path).iterdir():
+            for file in Path(file).iterdir():
                 if file.is_file():
                     archive.write(file)
+                    logger.debug(f"Файл {file.name} добавлен в архив {zip_file.name}")
                 elif file.is_dir():
                     # Рекурсивный вызов для обработки подпапок
                     archive.write(file)
-                    self.add_to_archive(archive, file)  
+                    self.add_to_archive(archive, file)
+                    logger.debug(f"Папка {file.name} добавлена в архив {zip_file.name}")
 
 
 
@@ -62,10 +56,11 @@ class ResultsFolder(object):
 
     def create_folder(self, name):
         self.path = Path(TARGET / Path(name))
-        # Проверяем, существует ли папка TARGET / Path(TICKET)
+        # Проверяем, существует ли папка
         if not self.path.exists():
             # Если папка не существует, создаем ее
             self.path.mkdir()
+            logger.info(f"Создана папка {self.path.name}")
 
 
 class TemplateProcessor(object):
