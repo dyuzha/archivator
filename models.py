@@ -10,16 +10,36 @@ class ArchiveBuilder(ABC):
         pass
 
 
-class DefaultArchiveBuilder(ArchiveBuilder):
+class ZipArchiveBuilder(ArchiveBuilder):
     def __init__(self, compression=ZIP_DEFLATED, allow_zip64=True):
         self.compression = compression
         self.allow_zip64 = allow_zip64
         logger.debug("Конструктор вызван")
 
-    def build_archive(self, archive_path: PurePath,  *files):
-        for file in files:
-            self.add_to_archive(archive_path, file)
+    def build_archive(self, archive_path: Path,  *files_pathes):
+        for file_path in files_pathes:
+            self.recurcieve_add_to_archive(archive_path, file_path)
         logger.info(f"Архив {archive_path.name} построен")
+
+    def recurcieve_add_to_archive(self, zip_file: Path, file: Path, indent_dir=""):
+        """
+        Добавляет рекурсивно файл в архив
+        :param zip_file: Path, Zip-файл, который необходимо дополнить файлом
+        :param file: Path, Путь к файлу для рекурсивного добавления
+        :param indent_dir: str, показывает в какую папку в архиве необходимо 
+        поместить файл
+        """
+        with ZipFile(zip_file, mode="a", compression=self.compression, 
+                     allowZip64=self.allow_zip64) as zf:
+            zf.write(file, arcname=indent_dir + file.name)
+            logger.debug(f"Файл {file.name} добавлен в архив {zip_file.name}")
+
+        if file.is_dir():
+            dir: Path = file
+            indent_dir += dir.name + "/"
+            for indent_file in dir.iterdir():
+                self.recurcieve_add_to_archive(zip_file, indent_file, indent_dir=indent_dir)
+            logger.debug(f"Папка {dir.name} добавлена в архив {zip_file.name}")
 
 
     def add_to_archive(self, zip_file, file):
@@ -32,7 +52,7 @@ class DefaultArchiveBuilder(ArchiveBuilder):
                         allowZip64=self.allow_zip64) as archive:
             for file in Path(file).iterdir():
                 if file.is_file():
-                    archive.write(file)
+                    archive.write(file, arcname=file.name)
                     logger.debug(f"Файл {file.name} добавлен в архив {zip_file.name}")
                 elif file.is_dir():
                     # Рекурсивный вызов для обработки подпапок
@@ -83,12 +103,12 @@ class TemplateProcessor(object):
         return databases
 
     def create_archive(self, databases, archive_path) -> None:
-        builder = DefaultArchiveBuilder()
-        files = list()
+        builder = ZipArchiveBuilder()
+        files_pathes = list()
         for db_name in databases:
-            file = Path(DATA / Path(db_name))
-            files.append(file)
-        builder.build_archive(archive_path, *files)
+            file_path = Path(DATA / Path(db_name))
+            files_pathes.append(file_path)
+        builder.build_archive(archive_path, *files_pathes)
 
 
 # Папка с шаблонами
