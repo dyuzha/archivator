@@ -43,6 +43,20 @@ class ZipArchiveBuilder(ArchiveBuilder):
             logger.debug(f"Папка {dir.name} добавлена в архив {zip_file.name}")
 
 
+class FoldChecker:
+    def __init__(self, dir: Path):
+        if dir.is_dir():
+            self.dir = dir
+        else:
+            raise ValueError("{} Должна быть директорией".format(dir))
+
+    def get_list(self):
+        items = list()
+        for item in self.dir.iterdir():
+            items.append(item)
+        return items
+
+
 class YamlHandler:
     def __init__(self, file_path):
         self.file_path = file_path
