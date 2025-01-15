@@ -1,0 +1,5 @@
+folder name: test_2
+templates list: ['pat_1', 'pat_3']
+archive type: zip
+compression: ZIP_DEFLATED
+allow_zip64: True

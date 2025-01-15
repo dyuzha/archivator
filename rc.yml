@@ -2,8 +2,3 @@ paths:
   templates: templates
   data: databases
   target: results
-
-folder name: test_2
-templates list: ['pat_1', 'pat_3'] 
-
-
