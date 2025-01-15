@@ -44,17 +44,28 @@ class ZipArchiveBuilder(ArchiveBuilder):
 
 
 class FoldChecker:
-    def __init__(self, dir: Path):
-        if dir.is_dir():
-            self.dir = dir
-        else:
-            raise ValueError("{} Должна быть директорией".format(dir))
+    def __init__(self, dir_path: Path):
+        self.dir_path = dir_path
+        if not self.dir_path.is_dir():
+            raise ValueError("Указанный файл {} должен быть директорией".format(dir_path))
 
-    def get_list(self):
-        items = list()
-        for item in self.dir.iterdir():
-            items.append(item)
-        return items
+    def get_all_items(self) -> list:
+        """Возрвращает список всех элементов в директории"""
+        return [item for item in self.dir_path.iterdir()]
+
+    def _get_all_indent_items(self, items: list):
+        """Возвращает список элементов во вложенных папках"""
+        indent_items = []
+        for item in items:
+            if item.is_dir():
+                fold_checker = FoldChecker(item)
+                indent_items.extend(fold_checker.get_all_items())
+        return indent_items
+
+    def get_all_indent_items(self):
+        """Удобный интерфейс для получения списка элемнтов во вложенных папках"""
+        items = self.get_all_items()
+        return self._get_all_indent_items(items)
 
 
 class YamlHandler:
