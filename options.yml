@@ -1,5 +1,4 @@
-folder name: test_2
-templates list: ['pat_1', 'pat_3']
-archive type: zip
+folder name: test_4
+templates list: ['pat_1', 'pat_2']
 compression: ZIP_DEFLATED
 allow_zip64: True
