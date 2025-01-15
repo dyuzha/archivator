@@ -81,6 +81,12 @@ class YamlHandler:
         with open(self.file_path, 'w') as file:
             yaml.dump(self.data, file, default_flow_style=False)
 
+    def get_value(self, key):
+        if self.data is not None:
+            return self.data[key]
+        else:
+            return None
+
 
 
 class ResultsFolder(object):
@@ -107,16 +113,18 @@ class ResultsFolder(object):
 
 
 class TemplateProcessor(object):
-    def __init__(self, target_folder, templates_folder, data_folder):
+    def __init__(self, target_folder, templates_folder, data_folder, compression, allow_zip64):
         self.target_folder = target_folder
         self.templates_folder = templates_folder
         self.data_folder = data_folder
+        self.compression = compression
+        self.allow_zip64 = allow_zip64
 
-    def archive_by_templates(self, templates) -> None:
+    def create_archives_by_templates(self, templates) -> None:
         for template in templates:
             archive_path = Path(self.target_folder / Path(template + ".zip"))
             databases = self.get_databases(template)
-            self.create_archive(databases, archive_path)
+            self.create_archive(databases, archive_path, compression=self.compression, allow_zip64=self.allow_zip64)
 
     def get_databases(self, template) -> list:
         """Получает список информационных баз из шаблона"""
@@ -127,8 +135,8 @@ class TemplateProcessor(object):
                 databases.append(line)
         return databases
 
-    def create_archive(self, databases, archive_path) -> None:
-        builder = ZipArchiveBuilder()
+    def create_archive(self, databases, archive_path, compression, allow_zip64) -> None:
+        builder = ZipArchiveBuilder(compression=compression, allow_zip64=allow_zip64)
         files_pathes = list()
         for db_name in databases:
             file_path = Path(self.data_folder / Path(db_name))
