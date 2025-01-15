@@ -1,4 +1,3 @@
-paths:
-  templates: templates
-  data: databases
-  target: results
+templates: templates
+data: databases
+target: results
