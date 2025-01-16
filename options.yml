@@ -1,4 +1,3 @@
 folder name: test_4
 templates list: ['pat_1', 'pat_2']
 compression: ZIP_DEFLATED
-allow_zip64: True

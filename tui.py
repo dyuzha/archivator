@@ -1,33 +1,54 @@
 from main import Facade
-
 import npyscreen as np
+
+COMPRESSIONS = [
+    "ZIP_DEFLATED",
+    "ZIP_BZIP2",
+    "ZIP_LZMA", 
+    "ZIP_STORED"
+]
 
 class MyApp(np.NPSAppManaged):
     def onStart(self):
         self.interface = Facade()
-        self.read_rc()
+        self.interface.ready()
+        self.addForm("MAIN", MainForm)
 
-    def read_rc(self):
-        self.interface.read_rc_config()
-
-    def get_opts(self):
-        pass
-
-    def archive_by_opts(self):
-        self.interface.read_options_config()
-        self.interface.archive_by_selected_templates()
-
+    def build_archive(self, *templates, **opts):
+        self.interface.options.folder_name = opts["folder_name"]
+        self.interface.options.compression = opts["compression"]
+        self.interface.create_archives(*templates)
+        
 # This form class defines the display that will be presented to the user.
 
-class MainForm(np.Form):
+class MainForm(np.ActionForm):
     def create(self):
-        self.templates = self.parentApp.tw.get_template()
-        self.folder_name = self.add(np.TitleText, name = "Folder name:", value= "")
-        self.selected_templates = self.add(np.TitleMultiSelect, name = "Templates:", values=self.templates)
+        templates = self.parentApp.interface.get_templates()
+        self.folder_name = self.add(np.TitleText, 
+                                     name = "Folder name:", 
+                                     value= "")
 
+        self.compression = self.add(np.TitleSelectOne, 
+                                    max_height=4,
+                                    name = "Compression",
+                                    values=COMPRESSIONS)
+
+        self.templates = self.add(np.TitleMultiSelect,
+                                   name = "Templates:",
+                                   values=templates)
+
+    def on_ok(self):
+        # Создать архив
+        self.parentApp.build_archive(
+            folder_name = self.folder_name.value, 
+            compression = self.compression.get_selected_objects()[0], 
+            *self.templates.get_selected_objects())
+
+    def on_cancel(self):
+        pass
+ 
     def afterEditing(self):
-        # self.parentApp.setNextForm(None)
-        self.parentApp.archive_by_opts()
+        self.parentApp.setNextForm(None)
 
 if __name__ == '__main__':
     TA = MyApp()

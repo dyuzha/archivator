@@ -1,8 +1,42 @@
-from zipfile import ZipFile, ZIP_DEFLATED
-from pathlib import Path, PurePath
+from zipfile import ZipFile, ZIP_DEFLATED, ZIP_BZIP2, ZIP_LZMA, ZIP_STORED
+from pathlib import Path
 from loguru import logger
 import yaml
 from abc import ABC, abstractmethod
+
+
+class Options(object):
+    def __init__(self, data_path, templates_path, archives_path,  
+                 *templates, **opts):
+        self.data_path = data_path
+        self.templates_path = templates_path
+        self.archives_path = archives_path
+
+        self.folder_name = opts.get("folder_name", None)
+        self.compression = opts.get("compression", 0)
+
+        self.templates = templates
+
+    @property
+    def compression(self):
+        return self._compression
+    
+    @compression.setter
+    def compression(self, value):
+        if isinstance(value, int):
+            self._compression = value
+        else:
+            match value:
+                case "ZIP_DEFLATED":
+                    self._compression = ZIP_DEFLATED
+                case "ZIP_BZIP2":
+                    self._compression = ZIP_BZIP2
+                case "ZIP_LZMA":
+                    self._compression = ZIP_LZMA
+                case "ZIP_STORED":
+                    self._compression = ZIP_STORED
+                case _:
+                    raise ValueError("Данное значение {} не поддерживается".format(value))
 
 
 class ArchiveBuilder(ABC):
@@ -12,9 +46,8 @@ class ArchiveBuilder(ABC):
 
 
 class ZipArchiveBuilder(ArchiveBuilder):
-    def __init__(self, compression=ZIP_DEFLATED, allow_zip64=True):
+    def __init__(self, compression=ZIP_DEFLATED):
         self.compression = compression
-        self.allow_zip64 = allow_zip64
         logger.debug("Конструктор вызван")
 
     def build_archive(self, archive_path: Path,  *files_pathes):
@@ -31,7 +64,7 @@ class ZipArchiveBuilder(ArchiveBuilder):
         поместить файл
         """
         with ZipFile(zip_file, mode="a", compression=self.compression,
-                     allowZip64=self.allow_zip64) as zf:
+                     allowZip64=True) as zf:
             zf.write(file, arcname=indent_dir + file.name)
             logger.debug(f"Файл {file.name} добавлен в архив {zip_file.name}")
 
@@ -52,6 +85,10 @@ class FoldChecker:
     def get_all_items(self) -> list:
         """Возрвращает список всех элементов в директории"""
         return [item for item in self.dir_path.iterdir()]
+
+    def get_all_items_name(self) -> list:
+        """Возрвращает список имен всех элементов в директории"""
+        return [item.name for item in self.dir_path.iterdir()]
 
     def _get_all_indent_items(self, items: list):
         """Возвращает список элементов во вложенных папках"""
@@ -88,12 +125,12 @@ class YamlHandler:
             return None
 
 
-
 class ResultsFolder(object):
-    def __init__(self, path: Path):
-        self.path = path
     # Переменная для отслеживания единственности экземпляра
     instance = None
+
+    def __init__(self, path: Path):
+        self.path = path
 
     # Действия при создании нового экземпляра класса
     def __new__(cls, *args, **kwargs):
@@ -103,28 +140,35 @@ class ResultsFolder(object):
         # Возвращается экземпляр хранящийся в переменной класса
         return cls.instance
 
-    def create_folder(self, name: str):
-        self.path_folder = self.path / Path(name)
-        # Проверяем, существует ли папка
-        if not self.path_folder.exists():
+    def create_sub_folder(self, name: str):
+        self.path_sub_folder = self.path / Path(name)
+        # Проверяем,create_sub_folder существует ли папка
+        if not self.path_sub_folder.exists():
             # Если папка не существует, создаем ее
-            self.path_folder.mkdir()
-            logger.info(f"Создана папка {self.path.name}")
+            self.path_sub_folder.mkdir()
+            logger.info(f"Создана папка {self.path_sub_folder.name}")
 
 
-class TemplateProcessor(object):
-    def __init__(self, target_folder, templates_folder, data_folder, compression, allow_zip64):
-        self.target_folder = target_folder
-        self.templates_folder = templates_folder
-        self.data_folder = data_folder
+class ArchiveProcessor(object):
+    def __init__(self, target_path, templates_path, data_path,
+                 compression):
+        self.target_folder = target_path
+        self.templates_folder = templates_path
+        self.data_folder = data_path
         self.compression = compression
-        self.allow_zip64 = allow_zip64
 
-    def create_archives_by_templates(self, templates) -> None:
-        for template in templates:
-            archive_path = Path(self.target_folder / Path(template + ".zip"))
-            databases = self.get_databases(template)
-            self.create_archive(databases, archive_path, compression=self.compression, allow_zip64=self.allow_zip64)
+    def create_archives_by_templates(self, *templates) -> None:
+        try:
+            for template in templates:
+                archive_path = Path(self.target_folder / Path(template + ".zip"))
+                databases = self.get_databases(template)
+                self.create_archive(databases=databases, 
+                                    archive_path=archive_path, 
+                                    compression=self.compression)
+            logger.info(f"Директория [{self.target_folder}] сорбрана")
+
+        except Exception as ex:
+            logger.critical(f"Директория [{self.target_folder}] не сорбрана.\n [WARN]: {ex}")
 
     def get_databases(self, template) -> list:
         """Получает список информационных баз из шаблона"""
@@ -135,10 +179,13 @@ class TemplateProcessor(object):
                 databases.append(line)
         return databases
 
-    def create_archive(self, databases, archive_path, compression, allow_zip64) -> None:
-        builder = ZipArchiveBuilder(compression=compression, allow_zip64=allow_zip64)
+    def create_archive(self, databases, archive_path, compression) -> None:
+        builder = ZipArchiveBuilder(compression=compression)
+
+        # Собираем список файлов для архивирования
         files_pathes = list()
         for db_name in databases:
             file_path = Path(self.data_folder / Path(db_name))
             files_pathes.append(file_path)
+
         builder.build_archive(archive_path, *files_pathes)
