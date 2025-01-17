@@ -2,9 +2,16 @@ from models import ResultsFolder, ArchiveProcessor, YamlHandler, FoldChecker, Op
 from pathlib import Path
 
 
+def txt_del(value: str):
+    """Обрезает .txt в конце строки (если есть)"""
+    if value[-4:] == ".txt":
+        value = value[:-4]
+    return value
+
+
 class Facade:
     def __init__(self):
-        self._rc_handler = YamlHandler("rc.yml")
+        self._rc_handler = YamlHandler("rc_server.yml")
         self._options_handler = YamlHandler("options.yml")
 
     def ready(self):

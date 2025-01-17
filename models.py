@@ -4,6 +4,12 @@ from loguru import logger
 import yaml
 from abc import ABC, abstractmethod
 
+def back_slash_del(value: str):
+    """Обрезает \\ в конце строки (если есть)"""
+    if value[-1:] == "\\":
+        value = value[:-1]
+    return value
+
 
 class Options(object):
     def __init__(self, data_path, templates_path, archives_path,  
@@ -65,8 +71,12 @@ class ZipArchiveBuilder(ArchiveBuilder):
         """
         with ZipFile(zip_file, mode="a", compression=self.compression,
                      allowZip64=True) as zf:
-            zf.write(file, arcname=indent_dir + file.name)
-            logger.debug(f"Файл {file.name} добавлен в архив {zip_file.name}")
+            try:
+                zf.write(file, arcname=indent_dir + file.name)
+                logger.debug(f"Файл {file.name} добавлен в архив {zip_file.name}")
+            except Exception as ex:
+                logger.critical(f"[WARN]: Файл {file.name} не добавлен в архив {zip_file.name}, {ex}")
+
 
         if file.is_dir():
             dir: Path = file
@@ -181,6 +191,9 @@ class ArchiveProcessor(object):
 
     def create_archive(self, databases, archive_path, compression) -> None:
         builder = ZipArchiveBuilder(compression=compression)
+
+        # Удаляем обратный слэш, если есть
+        databases = list(map(back_slash_del, databases))
 
         # Собираем список файлов для архивирования
         files_pathes = list()
