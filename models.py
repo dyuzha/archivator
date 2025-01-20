@@ -19,7 +19,10 @@ class Items(Tuple):
 
     def __init__(self, *values):
         super().__init__()
-        self._items = values
+        if all(isinstance(value, Path) for value in values):
+            self._items = values
+        else:
+            raise ValueError("Значения должны быть экземплярами Path")
 
     @property
     def name(self) -> Iterator[str]:
@@ -69,7 +72,7 @@ class ZipArchiveBuilder(ArchiveBuilder):
 
     def __init__(self):
         logger.debug("ZipArchiveBuilder конструктор вызван с параметром \
-                compression = {}".format(self._compression))
+compression = {}".format(self._compression))
 
     @property
     def compression(self):
@@ -102,7 +105,7 @@ class ZipArchiveBuilder(ArchiveBuilder):
             logger.debug(f"Директория {dir.name} добавлена в архив {archive.name}")
 
 
-class DefaultFolder(Path):
+class DefaultFolder():
     # Переменная для отслеживания единственности экземпляра
     _instance = None
 
@@ -116,6 +119,8 @@ class DefaultFolder(Path):
             raise ValueError("Указанный файл {} должен быть \
 директорией".format(path))
         self._path = path
+        self.load_items()
+
 
     @classmethod
     # Действия при создании нового экземпляра класса
@@ -127,11 +132,15 @@ class DefaultFolder(Path):
         return cls._instance
 
     @property
+    def path(self):
+        return self._path
+
+    @property
     def items(self):
         return self._items
 
     def load_items(self):
-        items = Items(self._path.iterdir())
+        items = tuple([Path(i) for i in self._path.iterdir()])
         self._items = items
 
 
@@ -144,6 +153,15 @@ class Templates(DefaultFolder):
         if value[-1:] == "\\" or "\n":
             Templates.name_handle(value[:-1])
         return value
+    
+    def get_content(self, template: str):
+        file = self.path / Path(template)
+        content = []
+        with open(file, "r") as f:
+            for line in f.readlines():
+                handler_line = Templates.name_handle(line)
+                content.append(handler_line)
+        return content
 
 
 class ArchiveProcessor(DefaultFolder):
@@ -152,17 +170,18 @@ class ArchiveProcessor(DefaultFolder):
     def build_archive(self, archive, *items):
         self._archive_builder.build_archive(archive, *items)
 
-    def get_matches(self, *values):
+    def get_matches(self, *names) -> List:
+        """Находит совпадающие архивы по названиям, возвращает список найденных архивов"""
         self.load_items()
         matches = []
         for item in self.items:
-            for value in values:
+            for value in names:
                 if item.name == value:
                     matches.append(item)
         return matches
 
     def mksubdir(self, name):
-        path_sub_folder = self / name
+        path_sub_folder = self.path / name
         # Если папка не существует, создаем ее
         path_sub_folder.mkdir(exist_ok=True)
         logger.info(f"Создана папка {path_sub_folder.name}")
@@ -202,12 +221,13 @@ class Processor:
             archive = self._ap / dir_name / template
             self._build_archive(archive, template)
 
-    def add_exists_arhive(self, dir: Path, *archives):
+    def add_exists_arhive(self, dir_name, *archives):
+        dir = Path(self._ap / Path(dir_name))
         for archive in archives:
             copy(archive, dir)
 
     def _build_archive(self, archive, template):
-        file_names = self._templates.
+        file_names = self._templates.get_content(template)
         for file_name in file_names:
             file_path = Path(self._data) / Path(file_name)
             self._ap.build_archive(archive, file_path)
