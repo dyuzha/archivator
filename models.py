@@ -17,7 +17,7 @@ class ArchiveBuilder(ABC):
 class Items(Tuple):
     _items: Tuple[Path]
 
-    def __init__(self, *values):
+    def __init__(self, values):
         super().__init__()
         if all(isinstance(value, Path) for value in values):
             self._items = values
@@ -140,8 +140,8 @@ class DefaultFolder():
         return self._items
 
     def load_items(self):
-        items = tuple([Path(i) for i in self._path.iterdir()])
-        self._items = items
+        items = tuple(self._path.iterdir())
+        self._items = Items(items)
 
 
 class Templates(DefaultFolder):
@@ -153,7 +153,7 @@ class Templates(DefaultFolder):
         if value[-1:] == "\\" or "\n":
             Templates.name_handle(value[:-1])
         return value
-    
+
     def get_content(self, template: str):
         file = self.path / Path(template)
         content = []
@@ -181,11 +181,9 @@ class ArchiveProcessor(DefaultFolder):
         return matches
 
     def mksubdir(self, name):
-        path_sub_folder = self.path / name
-        # Если папка не существует, создаем ее
-        path_sub_folder.mkdir(exist_ok=True)
-        logger.info(f"Создана папка {path_sub_folder.name}")
-
+        path = self.path / name
+        path.mkdir(exist_ok=True)
+        logger.info(f"Создана папка {path.name}")
         # Обновляем информацию о директориях
         self.load_items()
 
@@ -218,16 +216,16 @@ class Processor:
     def build_target_dir(self, dir_name, *templates):
         self._ap.mksubdir(dir_name)
         for template in templates:
-            archive = self._ap / dir_name / template
+            archive = self._ap.path / dir_name / template
             self._build_archive(archive, template)
 
     def add_exists_arhive(self, dir_name, *archives):
-        dir = Path(self._ap / Path(dir_name))
+        dir = Path(self._ap.path / Path(dir_name))
         for archive in archives:
             copy(archive, dir)
 
     def _build_archive(self, archive, template):
         file_names = self._templates.get_content(template)
         for file_name in file_names:
-            file_path = Path(self._data) / Path(file_name)
+            file_path = self._data.path / Path(file_name)
             self._ap.build_archive(archive, file_path)

@@ -10,18 +10,17 @@ for template in templates:
 
 # Получаем имя для директории с архивами
 name = str(datetime.now().time())
-print(f"dir name: {str}")
+print(f"dir name: {name}")
 
 # Получаем нужные шаблоны
 all_selected_templates = ["pat_1", "pat_2"]
 
 # Ищем готовые архивы
 all_ready_archives = proc.get_matches(*all_selected_templates)
-print()
-
+print(all_ready_archives)
 
 # Получаем шаблоны, по которым надо сделать архивы
-selected_templates = []
+selected_templates = all_selected_templates
 # И пути до архивов, которые нужно перенести
 ready_archives = []
 
@@ -29,5 +28,5 @@ ready_archives = []
 proc.build_target_dir(dir_name=name, *selected_templates)
 
 # Добавляем существующие архивы
-print(datetime.now().time()) 
+print(datetime.now().time())
 proc.add_exists_arhive(dir_name=name, *ready_archives)
