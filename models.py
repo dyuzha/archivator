@@ -84,12 +84,15 @@ compression = {}".format(self._compression))
         self._compression = factory.create_compression(value)
 
     def build_archive(self, archive: Path, *items):
-        for item in items:
-            self._recurcieve_add_to_archive(archive, item)
-            logger.info(f"Архив {archive.name} построен")
+        try:
+            for item in items:
+                self._recurcieve_add_to_archive(archive, item)
+            logger.info(f"Архив {archive.name} Успешно построен")
+        except Exception as ex:
+            logger.critical(f"Построение архива {archive.name} закончилось неудоачно")
+            logger.critical(f"[WARN]: {ex}")
 
     def _recurcieve_add_to_archive(self, archive: Path, item: Path, indent_dir=""):
-        # Добавляем item в архив
         with ZipFile(archive, mode="a", compression=self._compression,
                      allowZip64=True) as zf:
             zf.write(item, arcname=indent_dir + item.name)
@@ -105,7 +108,7 @@ compression = {}".format(self._compression))
             logger.debug(f"Директория {dir.name} добавлена в архив {archive.name}")
 
 
-class DefaultFolder():
+class DefaultFolder:
     # Переменная для отслеживания единственности экземпляра
     _instance = None
 
@@ -150,8 +153,8 @@ class Templates(DefaultFolder):
 
     @staticmethod
     def name_handle(value):
-        if value[-1:] == "\\" or "\n":
-            Templates.name_handle(value[:-1])
+        if value[-1:] in {"\\", "\n"}:
+            value = Templates.name_handle(value[:-1])
         return value
 
     def get_content(self, template: str):
@@ -160,14 +163,15 @@ class Templates(DefaultFolder):
         with open(file, "r") as f:
             for line in f.readlines():
                 handler_line = Templates.name_handle(line)
+                print(handler_line)
                 content.append(handler_line)
         return content
 
 
 class ArchiveProcessor(DefaultFolder):
-    _archive_builder = ZipArchiveBuilder
+    _archive_builder = ZipArchiveBuilder()
 
-    def build_archive(self, archive, *items):
+    def build_archive(self, archive: Path, *items):
         self._archive_builder.build_archive(archive, *items)
 
     def get_matches(self, *names) -> List:
@@ -196,7 +200,6 @@ class Processor:
     _templates: Templates
     _data: DefaultFolder
 
-
     def __init__(self, config):
         self._config = YamlHandler(config)
         self.read_config()
@@ -216,7 +219,8 @@ class Processor:
     def build_target_dir(self, dir_name, *templates):
         self._ap.mksubdir(dir_name)
         for template in templates:
-            archive = self._ap.path / dir_name / template
+            print(template)
+            archive = self._ap.path / Path(dir_name) / Processor.name_handle(template)
             self._build_archive(archive, template)
 
     def add_exists_arhive(self, dir_name, *archives):
@@ -226,6 +230,11 @@ class Processor:
 
     def _build_archive(self, archive, template):
         file_names = self._templates.get_content(template)
-        for file_name in file_names:
-            file_path = self._data.path / Path(file_name)
-            self._ap.build_archive(archive, file_path)
+        file_paths = [self._data.path / Path(i) for i in file_names]
+        self._ap.build_archive(archive, *file_paths)
+
+    @staticmethod
+    def name_handle(value):
+        if value[-4:] == ".txt":
+            return Processor.name_handle(value[:-4])
+        return value + ".zip"

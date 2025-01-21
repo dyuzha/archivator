@@ -2,18 +2,19 @@ from models import Processor
 from datetime import datetime
 
 
-proc = Processor(config="rc.yml")
+proc = Processor(config="rc_server.yml")
 
 templates = proc.get_templates()
 for template in templates:
     print(template)
 
 # Получаем имя для директории с архивами
-name = str(datetime.now().time())
+# name = datetime.now().strftime("%H_%M_%S")
+name = "2359"
 print(f"dir name: {name}")
 
 # Получаем нужные шаблоны
-all_selected_templates = ["pat_1", "pat_2"]
+all_selected_templates = ["СКУО (лок).txt"]
 
 # Ищем готовые архивы
 all_ready_archives = proc.get_matches(*all_selected_templates)
@@ -25,8 +26,7 @@ selected_templates = all_selected_templates
 ready_archives = []
 
 # Создаем архивы
-proc.build_target_dir(dir_name=name, *selected_templates)
+proc.build_target_dir(name, *selected_templates)
 
 # Добавляем существующие архивы
-print(datetime.now().time())
 proc.add_exists_arhive(dir_name=name, *ready_archives)
