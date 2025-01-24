@@ -1,3 +1,5 @@
 ai.md
 __pycache__
 results/*
+databases/*
+templates/*
