@@ -1,3 +1,9 @@
 ai.md
 __pycache__
-results/*
+.idea
+databases
+results
+templates
+venv
+windowsvenv
+

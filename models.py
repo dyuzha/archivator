@@ -210,7 +210,7 @@ class Processor:
         self._templates = Templates(self._config.data["templates"])
         self._data = DefaultFolder(self._config.data["data"])
 
-    def get_templates(self):
+    def get_templates(self) -> Iterator[str]:
         return self._templates.items.name
 
     def get_matches(self, *value):
