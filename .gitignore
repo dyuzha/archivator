@@ -10,3 +10,4 @@ rc.yml
 options.yml
 rc_server.yml
 run.ps1
+test.py
