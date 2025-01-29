@@ -34,13 +34,13 @@ class AllowForm(npyscreen.ActionForm):
 
 class OptionsForm(npyscreen.ActionForm):
     def create(self):
-        folder_name = self.add(npyscreen.TitleText,
+        self.folder_name = self.add(npyscreen.TitleText,
                                     name = "Folder name:",
                                     value = "")
-        self.options = Options(folder_name=folder_name.value)
+        
 
     def on_ok(self):
-        self.parentApp.options = self.options
+        self.parentApp.options.folder_name = self.folder_name.value
         self.parentApp.setNextForm('TEMPLATES')
 
 
@@ -50,7 +50,7 @@ class TemplatesForm(npyscreen.ActionForm):
         self.selected_templates = self.add(npyscreen.TitleMultiSelect,
                                    values=templates)
     def on_ok(self):
-        self.parentApp.options.selected_templates = self.selected_templates.values
+        self.parentApp.options.selected_templates = self.selected_templates.get_selected_objects()
         self.build = True
 
     def on_canel(self):
@@ -71,9 +71,10 @@ class App(npyscreen.NPSAppManaged):
         dir_name = self.options.folder_name
         templates = self.options.selected_templates
         self.processor.build_target_dir(dir_name, *templates)
+        self.options = Options()
 
     def onStart(self):
-        self.processor = Processor("rc_server.yml")
+        self.processor = Processor("rc.yml")
         self.options = Options()
 
         self.addForm("MAIN", OptionsForm, name="Options",
