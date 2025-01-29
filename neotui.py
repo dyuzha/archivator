@@ -47,19 +47,10 @@ class App(npyscreen.NPSAppManaged):
         self.processor.build_target_dir(dir_name, *templates)
 
     def onStart(self):
-        self.processor = Processor("rc.yml")
+        self.processor = Processor("rc_server.yml")
         self.options = Options()
 
         self.addForm("MAIN", OptionsForm, name="Options",
                      lines = 10, column = 10)
         self.addForm("TEMPLATES", TemplatesForm, name="Templates")
         # self.addForm("ALLOW", AllowForm, name="Allow", lines = 10)
-
-
-
-if __name__ == '__main__':
-    app = App()
-    app.run()
-
-    if app.build == True: 
-        app.build_dir()
