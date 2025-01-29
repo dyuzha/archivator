@@ -6,3 +6,7 @@ results
 templates
 venv
 windowsvenv
+rc.yml
+options.yml
+rc_server.yml
+run.ps1
