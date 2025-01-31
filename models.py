@@ -150,6 +150,12 @@ class DefaultFolder:
 class Templates(DefaultFolder):
     _path: Path
     _items: Items
+    _encoding: str = "utf-8"
+
+    def __init__(self, encoding="utf-8", *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._encoding = encoding
+
 
     @staticmethod
     def name_handle(value):
@@ -160,7 +166,7 @@ class Templates(DefaultFolder):
     def get_content(self, template: str):
         file = self.path / Path(template)
         content = []
-        with open(file, "r") as f:
+        with open(file, "r", encoding=self._encoding) as f:
             for line in f.readlines():
                 handler_line = Templates.name_handle(line)
                 print(handler_line)
@@ -207,7 +213,7 @@ class Processor:
     def read_config(self):
         self._config.load_data()
         self._ap = ArchiveProcessor(self._config.data["archives"])
-        self._templates = Templates(self._config.data["templates"])
+        self._templates = Templates(path=self._config.data["templates"], encoding=self._config.data["encoding"])
         self._data = DefaultFolder(self._config.data["data"])
 
     def get_templates(self) -> Iterator[str]:
